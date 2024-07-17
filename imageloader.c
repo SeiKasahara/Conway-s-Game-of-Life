@@ -27,7 +27,7 @@ Image *readData(char *filename)
 {
 	//YOUR CODE HERE
 	Image *target = (Image *) malloc(sizeof(Image));
-	FILE *fp = fopen(filename, 'r');
+	FILE *fp = fopen(filename, "r");
 	if (target == NULL) {
         perror("Failed to allocate memory for Image");
         fclose(fp);
