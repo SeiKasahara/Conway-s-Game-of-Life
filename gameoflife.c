@@ -17,12 +17,75 @@
 #include <inttypes.h>
 #include "imageloader.h"
 
+int liveOrDeath(Color *color) {
+	if (color->B == 255 && color->G == 255 && color->R == 255) {
+		return 1;
+	} else if (color->B == 0 && color->G == 0 && color->R == 0) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
 //Determines what color the cell at the given row/col should be. This function allocates space for a new Color.
 //Note that you will need to read the eight neighbors of the cell in question. The grid "wraps", so we treat the top row as adjacent to the bottom row
 //and the left column as adjacent to the right column.
 Color *evaluateOneCell(Image *image, int row, int col, uint32_t rule)
 {
 	//YOUR CODE HERE
+	Color *result = (Color *) malloc(sizeof(Color));
+	if (result == NULL) {
+		perror("failed to allocate memory for color");
+		return NULL;
+	}
+	int directions[8][2] = {
+		{-1, 0},
+		{1, 0},
+		{0, 1},
+		{0, -1},
+		{1, 1},
+		{1, -1},
+		{-1, 1},
+		{-1, -1},
+	};
+	int LiveCount = 0;
+	int DeathCount = 0;
+	if (liveOrDeath(&image->image[row][col])) {
+		for (int i = 0; i < 8; i++) {
+			int newRow = row + directions[i][0];
+			int newCol = col + directions[i][1];
+			if (newRow >= 0 && newRow < image->rows && newCol >= 0 && newCol < image->cols && liveOrDeath(&image->image[newRow][newCol]) >= 0) {
+				LiveCount += liveOrDeath(&image->image[newRow][newCol]);
+        	}
+		}
+		if (((rule >> LiveCount) & 1) == 1) {
+			result->B = 255;
+			result->G = 255;
+			result->R = 255;
+		} else {
+			result->B = 0;
+			result->G = 0;
+			result->R = 0;
+		}
+	} else {
+		for (int i = 0; i < 8; i++) {
+			int newRow = row + directions[i][0];
+			int newCol = col + directions[i][1];
+			if (newRow >= 0 && newRow < image->rows && newCol >= 0 && newCol < image->cols && liveOrDeath(&image->image[newRow][newCol]) >= 0) {
+				DeathCount += liveOrDeath(&image->image[newRow][newCol]);
+        	}
+		}
+		if (((rule >> DeathCount) & 1) == 1) {
+			result->B = 255;
+			result->G = 255;
+			result->R = 255;
+		} else {
+			result->B = 0;
+			result->G = 0;
+			result->R = 0;
+		}
+	}
+	return result;
 }
 
 //The main body of Life; given an image and a rule, computes one iteration of the Game of Life.
@@ -30,6 +93,42 @@ Color *evaluateOneCell(Image *image, int row, int col, uint32_t rule)
 Image *life(Image *image, uint32_t rule)
 {
 	//YOUR CODE HERE
+	Image *result = (Image *)malloc(sizeof(Image));
+    if (result == NULL) {
+        perror("Failed to allocate memory for Image");
+        return NULL;
+    }
+	result->rows = image->rows;
+    result->cols = image->cols;
+    result->image = (Color **)malloc(result->rows * sizeof(Color *));
+	if (result->image == NULL) {
+        perror("Failed to allocate memory for Image rows");
+        free(result);
+        return NULL;
+    }
+	for (uint32_t i = 0; i < result->rows; i++) {
+        result->image[i] = (Color *)malloc(result->cols * sizeof(Color));
+        if (result->image[i] == NULL) {
+            perror("Failed to allocate memory for Image cols");
+            freeImage(result);
+            return NULL;
+        }
+    }
+	for (uint32_t i = 0; i < image->rows; i++) {
+        for (uint32_t j = 0; j < image->cols; j++) {
+			Color *Cell = evaluateOneCell(image, i, j, rule);
+			if (Cell == NULL) {
+                // Clean up previously allocated memory before returning NULL
+                freeImage(result);
+                return NULL;
+            }
+			result->image[i][j].B = Cell->B;
+			result->image[i][j].R = Cell->R;
+			result->image[i][j].G = Cell->G;
+			free(Cell);
+		}
+	}
+	return result;
 }
 
 /*
@@ -50,4 +149,11 @@ You may find it useful to copy the code from steganography.c, to start.
 int main(int argc, char **argv)
 {
 	//YOUR CODE HERE
+	uint32_t rule = strtoul(argv[2], NULL, 10);
+	Image * image = readData(argv[1]);
+	Image * newImage = life(image, rule);
+	writeData(newImage);
+	freeImage(image);
+	freeImage(newImage);
+	return 0;
 }
