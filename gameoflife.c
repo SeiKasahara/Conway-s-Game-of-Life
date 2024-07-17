@@ -5,7 +5,7 @@
 ** DESCRIPTION: CS61C Fall 2020 Project 1
 **
 ** AUTHOR:      Justin Yokota - Starter Code
-**				YOUR NAME HERE
+**				Seikasahara
 **
 **
 ** DATE:        2020-08-23
