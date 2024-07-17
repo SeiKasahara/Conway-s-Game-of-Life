@@ -50,40 +50,26 @@ Color *evaluateOneCell(Image *image, int row, int col, uint32_t rule)
 	};
 	int LiveCount = 0;
 	int DeathCount = 0;
-	if (liveOrDeath(&image->image[row][col])) {
-		for (int i = 0; i < 8; i++) {
-			int newRow = row + directions[i][0];
-			int newCol = col + directions[i][1];
-			if (newRow >= 0 && newRow < image->rows && newCol >= 0 && newCol < image->cols && liveOrDeath(&image->image[newRow][newCol]) >= 0) {
-				LiveCount += liveOrDeath(&image->image[newRow][newCol]);
-        	}
+	for (int i = 0; i < 8; i++) {
+		int newRow = (row + directions[i][0] + image->rows) % image->rows;
+		int newCol = (col + directions[i][1] + image->cols) % image->cols;
+		int neighborStatus = liveOrDeath(&image->image[newRow][newCol]);
+		if (neighborStatus == 1) {
+			LiveCount++;
+		} else if (neighborStatus == 0) {
+			DeathCount++;
 		}
-		if (((rule >> LiveCount) & 1) == 1) {
-			result->B = 255;
-			result->G = 255;
-			result->R = 255;
-		} else {
-			result->B = 0;
-			result->G = 0;
-			result->R = 0;
-		}
+	}
+	int currentStatus = liveOrDeath(&image->image[row][col]);
+	if ((currentStatus == 1 && ((rule >> LiveCount) & 1)) || 
+		(currentStatus == 0 && ((rule >> (DeathCount + 9)) & 1))) {
+		result->B = 255;
+		result->G = 255;
+		result->R = 255;
 	} else {
-		for (int i = 0; i < 8; i++) {
-			int newRow = row + directions[i][0];
-			int newCol = col + directions[i][1];
-			if (newRow >= 0 && newRow < image->rows && newCol >= 0 && newCol < image->cols && liveOrDeath(&image->image[newRow][newCol]) >= 0) {
-				DeathCount += liveOrDeath(&image->image[newRow][newCol]);
-        	}
-		}
-		if (((rule >> DeathCount) & 1) == 1) {
-			result->B = 255;
-			result->G = 255;
-			result->R = 255;
-		} else {
-			result->B = 0;
-			result->G = 0;
-			result->R = 0;
-		}
+		result->B = 0;
+		result->G = 0;
+		result->R = 0;
 	}
 	return result;
 }
@@ -122,9 +108,7 @@ Image *life(Image *image, uint32_t rule)
                 freeImage(result);
                 return NULL;
             }
-			result->image[i][j].B = Cell->B;
-			result->image[i][j].R = Cell->R;
-			result->image[i][j].G = Cell->G;
+			result->image[i][j] = *Cell;
 			free(Cell);
 		}
 	}
@@ -149,9 +133,22 @@ You may find it useful to copy the code from steganography.c, to start.
 int main(int argc, char **argv)
 {
 	//YOUR CODE HERE
-	uint32_t rule = strtoul(argv[2], NULL, 10);
+	if (argc != 3) {
+        fprintf(stderr, "Usage: %s <filename> <rule>\n", argv[0]);
+        return -1;
+    }
+	uint32_t rule = strtoul(argv[2], NULL, 16);
 	Image * image = readData(argv[1]);
+	if (image == NULL) {
+        fprintf(stderr, "Failed to read image from %s\n", argv[1]);
+        return -1;
+    }
 	Image * newImage = life(image, rule);
+	if (newImage == NULL) {
+        fprintf(stderr, "Failed to compute the next iteration of the game of life\n");
+        freeImage(image);
+        return -1;
+    }
 	writeData(newImage);
 	freeImage(image);
 	freeImage(newImage);
