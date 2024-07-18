@@ -1,0 +1,1 @@
+docker run -it -v /c/Users/op/cits4407/fa20-proj1-starter:/app --entrypoint /bin/tcsh fa20-proj1-starter-app

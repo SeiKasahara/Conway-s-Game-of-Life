@@ -17,10 +17,10 @@
 #include <inttypes.h>
 #include "imageloader.h"
 
-int liveOrDeath(Color *color) {
-	if (color->B == 255 && color->G == 255 && color->R == 255) {
+int liveOrDeath(uint8_t color) {
+	if (color == 255) {
 		return 1;
-	} else if (color->B == 0 && color->G == 0 && color->R == 0) {
+	} else if (color == 0) {
 		return 0;
 	} else {
 		return -1;
@@ -48,28 +48,50 @@ Color *evaluateOneCell(Image *image, int row, int col, uint32_t rule)
 		{-1, 1},
 		{-1, -1},
 	};
-	int LiveCount = 0;
-	int DeathCount = 0;
+	int LiveCountR = 0, LiveCountG = 0, LiveCountB = 0;
+	int DeathCountR = 0, DeathCountG = 0, DeathCountB = 0;
 	for (int i = 0; i < 8; i++) {
 		int newRow = (row + directions[i][0] + image->rows) % image->rows;
 		int newCol = (col + directions[i][1] + image->cols) % image->cols;
-		int neighborStatus = liveOrDeath(&image->image[newRow][newCol]);
-		if (neighborStatus == 1) {
-			LiveCount++;
-		} else if (neighborStatus == 0) {
-			DeathCount++;
+		int neighborStatusR = liveOrDeath(image->image[newRow][newCol].R);
+		int neighborStatusG = liveOrDeath(image->image[newRow][newCol].G);
+		int neighborStatusB = liveOrDeath(image->image[newRow][newCol].B);
+		if (neighborStatusR == 1) {
+			LiveCountR++;
+		} else if (neighborStatusR == 0) {
+			DeathCountR++;
+		}
+		if (neighborStatusG == 1) {
+			LiveCountG++;
+		} else if (neighborStatusG == 0) {
+			DeathCountG++;
+		}
+		if (neighborStatusB == 1) {
+			LiveCountB++;
+		} else if (neighborStatusB == 0) {
+			DeathCountB++;
 		}
 	}
-	int currentStatus = liveOrDeath(&image->image[row][col]);
-	if ((currentStatus == 1 && ((rule >> LiveCount) & 1)) || 
-		(currentStatus == 0 && ((rule >> (DeathCount + 9)) & 1))) {
-		result->B = 255;
-		result->G = 255;
+	int currentStatusR = liveOrDeath(image->image[row][col].R);
+	int currentStatusG = liveOrDeath(image->image[row][col].G);
+	int currentStatusB = liveOrDeath(image->image[row][col].B);
+	if ((currentStatusR == 1 && ((rule >> LiveCountR) & 1)) || 
+		(currentStatusR == 0 && ((rule >> DeathCountR) & 1))) {
 		result->R = 255;
 	} else {
-		result->B = 0;
-		result->G = 0;
 		result->R = 0;
+	}
+	if ((currentStatusG == 1 && ((rule >> LiveCountG) & 1)) || 
+		(currentStatusG == 0 && ((rule >> DeathCountG) & 1))) {
+		result->G = 255;
+	} else {
+		result->G = 0;
+	}
+	if ((currentStatusB == 1 && ((rule >> LiveCountB) & 1)) || 
+		(currentStatusB == 0 && ((rule >> DeathCountB) & 1))) {
+		result->B = 255;
+	} else {
+		result->B = 0;
 	}
 	return result;
 }
